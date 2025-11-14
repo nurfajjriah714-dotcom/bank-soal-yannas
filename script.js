@@ -1,23 +1,36 @@
-// Data Soal Farmasi (Generik vs Dagang)
-const pharmaData = [
-    { generik: "Paracetamol", dagang: "Feverin" },
-    { generik: "Amoxicillin", dagang: "Moxilex" },
-    { generik: "Captopril", dagang: "Tensicap" },
-    { generik: "Ibuprofen", dagang: "Proris" },
-    // Anda bisa menambahkan lebih banyak data di sini
-];
+// =================================================================
+// 1. DATA DAN KONFIGURASI
+// =================================================================
+
+// ⚠️ WAJIB DIGANTI! GANTI DENGAN URL WEB APP ANDA DARI GOOGLE APPS SCRIPT
+const WEB_APP_URL = 'GANTI_DENGAN_URL_WEB_APP_ANDA'; 
+
+// =================================================================
+// 2. VARIABEL DOM DAN KONDISI GAME
+// =================================================================
 
 const gameArea = document.getElementById('game-area');
 const scoreBoard = document.getElementById('score-board');
 const resetButton = document.getElementById('reset-button');
 const messageElement = document.getElementById('message');
 
+const studentFormDiv = document.getElementById('student-form');
+const gameContentDiv = document.getElementById('game-content');
+const startGameButton = document.getElementById('start-game-button');
+const namaSiswaInput = document.getElementById('namaSiswa');
+const kelasInput = document.getElementById('kelas');
+
+let pharmaData = []; // Data soal sekarang akan diisi dari Apps Script
+let studentData = {};
 let cards = [];
 let cardsFlipped = [];
 let matchesFound = 0;
 let score = 0;
 
-// Fungsi untuk mengacak array (Fisher-Yates Shuffle)
+// =================================================================
+// 3. FUNGSI UTILITAS
+// =================================================================
+
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -25,13 +38,53 @@ function shuffleArray(array) {
     }
 }
 
-// Fungsi untuk Inisialisasi Game
+// =================================================================
+// 4. PENGAMBILAN SOAL (SISI SISWA)
+// =================================================================
+
+// Fungsi: Mengambil data soal dari Apps Script (Metode GET)
+function fetchDataSoal() {
+    messageElement.textContent = 'Mengambil soal dari server...';
+    
+    fetch(WEB_APP_URL)
+        .then(response => {
+             // Pastikan response oke dan tipe konten adalah JSON
+             if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.length > 0) {
+                pharmaData = data;
+                messageElement.textContent = 'Soal berhasil dimuat! Klik kartu untuk memulai.';
+                initGame(); // Inisialisasi Game setelah data dimuat
+            } else {
+                messageElement.textContent = '❌ Error: Tidak ada soal ditemukan di Spreadsheet. Harap hubungi Admin.';
+            }
+        })
+        .catch(error => {
+            messageElement.textContent = '❌ Error koneksi: Gagal mengambil soal. Cek koneksi internet/URL Web App.';
+            console.error('Fetch error:', error);
+        });
+}
+
+// =================================================================
+// 5. LOGIKA GAME
+// =================================================================
+
 function initGame() {
-    // Gabungkan Generik dan Dagang menjadi satu array
+    if (pharmaData.length === 0) {
+        // Jika inisialisasi dipanggil tanpa data, minta data lagi.
+        fetchDataSoal();
+        return; 
+    }
+    
     let allItems = [];
     pharmaData.forEach(item => {
-        allItems.push({ name: item.generik, type: 'generik', match: item.dagang });
-        allItems.push({ name: item.dagang, type: 'dagang', match: item.generik });
+        // Buat pasangan kartu untuk Generik dan Dagang
+        allItems.push({ name: item.generik, match: item.dagang });
+        allItems.push({ name: item.dagang, match: item.generik });
     });
 
     shuffleArray(allItems);
@@ -51,20 +104,17 @@ function initGame() {
         const cardElement = document.createElement('div');
         cardElement.classList.add('card');
         cardElement.textContent = cardData.name;
-        cardElement.dataset.index = index; // Menyimpan index di array
-        cardElement.dataset.type = cardData.type; // Menyimpan tipe (generik/dagang)
-        cardElement.dataset.match = cardData.match; // Menyimpan pasangan yang benar
+        cardElement.dataset.index = index;
+        cardElement.dataset.match = cardData.match; 
 
         cardElement.addEventListener('click', handleCardClick);
         gameArea.appendChild(cardElement);
     });
 }
 
-// Fungsi ketika Kartu di-klik
 function handleCardClick(event) {
     const clickedCard = event.target;
 
-    // Abaikan jika kartu sudah match atau sudah dipilih
     if (clickedCard.classList.contains('matched') || clickedCard.classList.contains('selected') || cardsFlipped.length >= 2) {
         return;
     }
@@ -73,25 +123,21 @@ function handleCardClick(event) {
     cardsFlipped.push(clickedCard);
 
     if (cardsFlipped.length === 2) {
-        // Cek kecocokan
         checkMatch();
     }
 }
 
-// Fungsi Cek Kecocokan Kartu
 function checkMatch() {
     const [card1, card2] = cardsFlipped;
 
-    // Syarat match: Nama kartu 1 cocok dengan match kartu 2, DAN sebaliknya
     const isMatch = (
         card1.textContent === card2.dataset.match &&
         card2.textContent === card1.dataset.match
     );
 
     if (isMatch) {
-        // Match Benar
         messageElement.textContent = '✅ Cocok! Pasangan Ditemukan.';
-        score += 10;
+        score += 10; // Nilai per match = 10
         scoreBoard.textContent = `Skor: ${score}`;
         
         card1.classList.add('matched');
@@ -102,15 +148,16 @@ function checkMatch() {
         matchesFound++;
 
         if (matchesFound === pharmaData.length) {
-            // Game Selesai
-            messageElement.textContent = `🎉 Selamat! Anda menyelesaikan tantangan dengan skor ${score}.`;
+            // GAME SELESAI
+            messageElement.textContent = `🎉 Selamat! Anda menyelesaikan tantangan dengan skor ${score}. Data Anda sedang dikirim...`;
             resetButton.style.display = 'block';
+            
+            // PANGGIL FUNGSI KIRIM DATA KE GOOGLE SHEET
+            sendScoreToSpreadsheet(studentData.namaSiswa, studentData.kelas, studentData.modul, score);
         }
     } else {
-        // Match Salah
         messageElement.textContent = '❌ Tidak Cocok. Coba lagi!';
         
-        // Kembalikan kartu setelah 1 detik
         setTimeout(() => {
             card1.classList.remove('selected');
             card2.classList.remove('selected');
@@ -118,12 +165,71 @@ function checkMatch() {
         }, 1000);
     }
 
-    // Reset kartu yang dipilih
     cardsFlipped = [];
 }
 
-// Event Listener untuk tombol reset
-resetButton.addEventListener('click', initGame);
+// =================================================================
+// 6. LOGIKA FORMULIR SISWA & PENGIRIMAN DATA (SISI SISWA)
+// =================================================================
 
-// Mulai Game saat halaman dimuat
-initGame();
+function startGame() {
+    const nama = namaSiswaInput.value.trim();
+    const kelas = kelasInput.value.trim();
+
+    if (nama === "" || kelas === "") {
+        alert("Nama Siswa dan Kelas wajib diisi untuk memulai!");
+        return;
+    }
+
+    studentData = {
+        namaSiswa: nama,
+        kelas: kelas,
+        modul: "PharmaMatch - Farmasi Klinis"
+    };
+
+    studentFormDiv.style.display = 'none';
+    gameContentDiv.style.display = 'block';
+    
+    fetchDataSoal(); // Ambil soal
+}
+
+// Fungsi: Mengirim data nilai siswa ke Google Apps Script (Metode POST)
+function sendScoreToSpreadsheet(nama, kelas, modul, finalScore) {
+    if (WEB_APP_URL === 'GANTI_DENGAN_URL_WEB_APP_ANDA') {
+        console.error("URL Web App belum diatur! Data tidak dikirim.");
+        return; 
+    }
+    
+    const dataToSend = {
+        namaSiswa: nama,
+        kelas: kelas,
+        modul: modul,
+        skorAkhir: finalScore
+    };
+
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors', 
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dataToSend)
+    })
+    .then(() => {
+        console.log("Pengiriman data ke spreadsheet berhasil (mode no-cors)");
+        messageElement.textContent = `✅ Skor ${finalScore} berhasil tercatat di Spreadsheet!`;
+    })
+    .catch(error => {
+        console.error('Error saat mengirim data:', error);
+        messageElement.textContent = `⚠️ Error! Skor ${finalScore} tidak tercatat. Cek Apps Script.`;
+    });
+}
+
+
+// =================================================================
+// 7. EVENT LISTENERS
+// =================================================================
+
+startGameButton.addEventListener('click', startGame);
+resetButton.addEventListener('click', initGame);
