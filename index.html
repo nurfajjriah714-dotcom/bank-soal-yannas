@@ -68,3 +68,187 @@
     </div>
 
 </div>
+
+<script>
+    // GANTI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA!!!
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwA3OlQc7FsZMgGk7IC6080yS__YHKMM4-cVNcy5OPySLh3wIvA_g3GuEGIlFk97LaV/exec'; 
+
+    let bankSoal = [];
+    let jawabanSiswa = {}; // Menggunakan objek untuk menyimpan jawaban berdasarkan ID
+    let currentSoalIndex = 0;
+    
+    // Data Siswa Global
+    let dataSiswa = { nis: '', nama: '', kelas: '' };
+    
+    // --- Kontrol Halaman ---
+
+    function showArea(areaId) {
+        document.getElementById('login-area').style.display = 'none';
+        document.getElementById('tutorial-area').style.display = 'none';
+        document.getElementById('kuis-area').style.display = 'none';
+        document.getElementById('hasil-area').style.display = 'none';
+        document.getElementById(areaId).style.display = 'block';
+    }
+
+    // --- Langkah 1: Login dan Persiapan ---
+
+    async function startTutorial() {
+        dataSiswa.nis = document.getElementById('nis-siswa').value.trim();
+        dataSiswa.nama = document.getElementById('nama-siswa').value.trim();
+        dataSiswa.kelas = document.getElementById('kelas-siswa').value.trim();
+
+        if (!dataSiswa.nis || !dataSiswa.nama || !dataSiswa.kelas) {
+            alert('Semua data siswa (NIS, Nama, Kelas) wajib diisi.');
+            return;
+        }
+        
+        // Ambil data soal terlebih dahulu
+        await fetchSoal(); 
+
+        if (bankSoal.length > 0) {
+             document.getElementById('total-soal-info').textContent = bankSoal.length;
+             showArea('tutorial-area');
+        } else {
+             alert("Gagal memuat soal atau bank soal kosong.");
+             showArea('login-area');
+        }
+    }
+    
+    // Mengambil soal dari Apps Script
+    async function fetchSoal() {
+        try {
+            const response = await fetch(APPS_SCRIPT_URL + '?action=getSoal', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                bankSoal = result.data;
+            } else {
+                alert('Gagal mengambil soal: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error fetching soal:', error);
+            alert('Terjadi kesalahan koneksi saat mengambil soal.');
+        }
+    }
+
+
+    // --- Langkah 2: Memulai Kuis ---
+
+    function startKuis() {
+        currentSoalIndex = 0;
+        jawabanSiswa = {};
+        showArea('kuis-area');
+        tampilkanSoal(currentSoalIndex);
+        // Anda bisa tambahkan timer di sini, misalnya 60 menit
+    }
+    
+    // Menampilkan soal ke halaman
+    function tampilkanSoal(index) {
+        if (index >= bankSoal.length) return;
+
+        const soal = bankSoal[index];
+        const container = document.getElementById('soal-container');
+        
+        container.innerHTML = `
+            <div class="card">
+                <p><strong>Soal ${index + 1} / ${bankSoal.length}</strong></p>
+                <p>${soal.pertanyaan}</p>
+                <div class="pilihan">
+                    <label><input type="radio" name="soal_${soal.id}" value="A" onclick="simpanJawaban('${soal.id}', 'A')"> A. ${soal.pilihanA}</label>
+                    <label><input type="radio" name="soal_${soal.id}" value="B" onclick="simpanJawaban('${soal.id}', 'B')"> B. ${soal.pilihanB}</label>
+                    <label><input type="radio" name="soal_${soal.id}" value="C" onclick="simpanJawaban('${soal.id}', 'C')"> C. ${soal.pilihanC}</label>
+                    <label><input type="radio" name="soal_${soal.id}" value="D" onclick="simpanJawaban('${soal.id}', 'D')"> D. ${soal.pilihanD}</label>
+                </div>
+            </div>
+        `;
+        
+        // Atur status tombol
+        document.getElementById('next-button').style.display = (index < bankSoal.length - 1) ? 'block' : 'none';
+        document.getElementById('finish-button').style.display = (index === bankSoal.length - 1) ? 'block' : 'none';
+
+        // Kembalikan pilihan jika siswa sudah pernah menjawab
+        if (jawabanSiswa[soal.id]) {
+            document.querySelector(`input[name="soal_${soal.id}"][value="${jawabanSiswa[soal.id]}"]`).checked = true;
+        }
+    }
+    
+    // Menyimpan jawaban sementara siswa
+    function simpanJawaban(soalId, pilihan) {
+        jawabanSiswa[soalId] = pilihan;
+    }
+    
+    // Pindah ke soal berikutnya
+    function nextSoal() {
+        if (currentSoalIndex < bankSoal.length - 1) {
+            currentSoalIndex++;
+            tampilkanSoal(currentSoalIndex);
+        }
+    }
+
+    // --- Langkah 3: Selesai dan Kirim Hasil ---
+    
+    async function finishKuis() {
+        if (!confirm("Apakah Anda yakin ingin menyelesaikan kuis? Jawaban tidak dapat diubah lagi.")) {
+            return;
+        }
+        
+        // Konversi objek jawaban ke array untuk dikirim ke backend
+        const jawabanArray = Object.keys(jawabanSiswa).map(id => ({
+            id: id,
+            jawaban: jawabanSiswa[id]
+        }));
+        
+        // Cek apakah semua soal sudah dijawab (opsional)
+        if (jawabanArray.length < bankSoal.length) {
+             const konfirmasi = confirm(`Anda baru menjawab ${jawabanArray.length} dari ${bankSoal.length} soal. Tetap selesaikan?`);
+             if (!konfirmasi) return;
+        }
+
+        document.getElementById('finish-button').disabled = true;
+        document.getElementById('finish-button').textContent = 'Mengirim Hasil...';
+
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    action: 'cekJawabanDanHitungSkor',
+                    jawaban: JSON.stringify(jawabanArray),
+                    siswa: JSON.stringify(dataSiswa)
+                }).toString(),
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                displayHasil(result.skor, result.totalSoal);
+            } else {
+                alert('Gagal mencatat hasil: ' + result.message);
+                document.getElementById('finish-button').textContent = 'Terjadi Kesalahan';
+            }
+        } catch (error) {
+            console.error('Error saving hasil:', error);
+            alert('Terjadi kesalahan koneksi saat menyimpan hasil. Silakan coba lagi.');
+        }
+    }
+    
+    // Menampilkan halaman hasil
+    function displayHasil(skor, total) {
+        document.getElementById('nama-hasil').textContent = dataSiswa.nama;
+        document.getElementById('nis-hasil').textContent = dataSiswa.nis;
+        document.getElementById('kelas-hasil').textContent = dataSiswa.kelas;
+        document.getElementById('skor-akhir').textContent = skor;
+        document.getElementById('total-soal-akhir').textContent = total;
+        showArea('hasil-area');
+    }
+
+    // Tampilkan halaman awal saat dokumen dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+        showArea('login-area');
+    });
+
+</script>
+
+</body>
+</html>
