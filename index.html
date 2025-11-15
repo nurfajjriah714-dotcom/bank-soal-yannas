@@ -1,17 +1,70 @@
-<section id="tutorial">
-    <h2>📝 Petunjuk Pengerjaan Soal</h2>
-    <ul>
-        <li>Masukkan **NIS** dan **Nama Lengkap** Anda dengan benar.</li>
-        <li>Terdapat **10** soal pilihan ganda yang harus dijawab.</li>
-        <li>Pilih satu jawaban yang paling benar.</li>
-        <li>Skor akan dihitung secara otomatis setelah selesai.</li>
-    </ul>
-    </section>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Soal SMKS Kesehatan Yannas Husada</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; text-align: center; }
+        .card { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
+        input[type="text"], input[type="password"], select { width: 100%; padding: 10px; margin: 8px 0 15px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background-color: #218838; }
+        .pilihan { display: flex; flex-direction: column; margin-top: 10px; }
+        .pilihan label { margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        .pilihan label:hover { background-color: #e9ecef; }
+        .pilihan input[type="radio"] { margin-right: 10px; }
+        #timer { font-size: 1.2em; font-weight: bold; color: #dc3545; text-align: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
 
-    <div id="admin-panel" style="margin-top: 50px;">
-    <h3>Area Admin</h3>
-    <input type="password" id="admin-pass" placeholder="Password Admin">
-    <button onclick="lihatDataAdmin(document.getElementById('admin-pass').value)">Lihat Hasil</button>
-    <div id="hasil-table">
+<div class="container">
+    <h1>Bank Soal SMKS Kesehatan Yannas Husada</h1>
+
+    <div id="login-area">
+        <h2>Masukkan Data Siswa</h2>
+        <input type="text" id="nis-siswa" placeholder="NIS Siswa (Wajib)" required>
+        <input type="text" id="nama-siswa" placeholder="Nama Lengkap (Wajib)" required>
+        <input type="text" id="kelas-siswa" placeholder="Kelas (Contoh: XI A)" required>
+        <button onclick="startTutorial()">Lanjutkan ke Petunjuk</button>
+    </div>
+
+    <div id="tutorial-area" style="display:none;">
+        <h2>📝 Petunjuk Pengerjaan Soal</h2>
+        <div class="card">
+            <ul>
+                <li>Pastikan data Anda **(NIS, Nama, Kelas)** sudah benar.</li>
+                <li>Terdapat total **<span id="total-soal-info">...</span>** soal pilihan ganda.</li>
+                <li>Pilih satu jawaban yang paling benar. Jawaban tidak bisa diubah setelah dipilih.</li>
+                <li>Setelah semua soal terjawab, klik **Selesai** untuk melihat hasil dan mengirim data.</li>
+            </ul>
         </div>
+        <button onclick="startKuis()">Mulai Pengerjaan Soal</button>
+    </div>
+
+    <div id="kuis-area" style="display:none;">
+        <h2>Pengerjaan Soal</h2>
+        <div id="timer">Waktu: Belum Dimulai</div>
+        <div id="soal-container">
+            </div>
+        <button id="next-button" onclick="nextSoal()">Soal Selanjutnya</button>
+        <button id="finish-button" onclick="finishKuis()" style="display:none; background-color: #dc3545;">Selesai</button>
+    </div>
+
+    <div id="hasil-area" style="display:none;">
+        <h2>🎉 Hasil Pengerjaan Anda</h2>
+        <div class="card">
+            <p><strong>Nama:</strong> <span id="nama-hasil"></span></p>
+            <p><strong>NIS:</strong> <span id="nis-hasil"></span></p>
+            <p><strong>Kelas:</strong> <span id="kelas-hasil"></span></p>
+            <hr>
+            <h3>Skor Anda: <span id="skor-akhir" style="color:#007bff;"></span></h3>
+            <p>Dari total <span id="total-soal-akhir"></span> soal.</p>
+            <p style="font-style: italic; color: green;">Hasil Anda sudah dicatat oleh sistem.</p>
+        </div>
+    </div>
+
 </div>
