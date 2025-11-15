@@ -1,43 +1,20 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PharmaMatch - Game Farmasi Yannas Husada</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <header>
-        <h1>💊 PharmaMatch Challenge</h1>
-        <p>SMK Kesehatan Yannas Husada - Farmasi Klinis & Komunitas</p>
-    </header>
+<main class="game-container">
+    <h2>Data Siswa</h2>
+    <div id="student-form">
+        <label for="namaSiswa">Nama Siswa:</label>
+        <input type="text" id="namaSiswa" required><br><br>
 
-    <main class="game-container">
-        
-        <h2>Data Siswa</h2>
-        <div id="student-form">
-            <label for="namaSiswa">Nama Siswa:</label>
-            <input type="text" id="namaSiswa" required><br><br>
+        <label for="kelas">Kelas:</label>
+        <input type="text" id="kelas" required><br><br>
 
-            <label for="kelas">Kelas (Contoh: XII Farmasi):</label>
-            <input type="text" id="kelas" required><br><br>
+        <button id="start-game-button">Mulai Game</button>
+    </div>
 
-            <button id="start-game-button">Mulai Game</button>
-        </div>
-
-        <div id="game-content" style="display: none;">
-            <div id="score-board">Skor: 0</div>
-            <div id="game-area">
-                </div>
-            <button id="reset-button" style="display: none;">Mulai Ulang</button>
-            <div id="message"></div>
-        </div>
-    </main>
-
-    <footer>
-        <p>&copy; SMK Kesehatan Yannas Husada - HealthQuest 2025</p>
-    </footer>
-
-    <script src="script.js"></script>
-</body>
-</html>
+    <div id="game-content" style="display: none;">
+        <div id="score-board">Skor: 0</div>
+        <div id="game-area">
+            </div>
+        <button id="reset-button" style="display: none;">Mulai Ulang</button>
+        <div id="message"></div>
+    </div>
+</main>
