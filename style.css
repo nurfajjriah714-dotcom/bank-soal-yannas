@@ -20,26 +20,6 @@ header {
     padding: 20px;
 }
 
-#student-form input {
-    padding: 10px;
-    margin-top: 5px;
-    width: 80%;
-    max-width: 300px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-#student-form button, #reset-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
-}
-
 #game-area {
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* 4 kolom */
@@ -61,36 +41,40 @@ header {
     cursor: pointer;
     transition: transform 0.2s, background-color 0.2s;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-    user-select: none;
 }
 
 .card:hover {
     transform: scale(1.05);
 }
 
+/* Style untuk kartu yang sudah dipilih */
 .selected {
     border-color: #ffc107;
     background-color: #fffbe2;
 }
 
+/* Style untuk kartu yang sudah match */
 .matched {
-    background-color: #007bff;
+    background-color: #28a745;
     color: white;
-    pointer-events: none;
-    border-color: #007bff;
+    pointer-events: none; /* Nonaktifkan klik setelah match */
+    border-color: #28a745;
 }
 
 #message {
     margin-top: 20px;
-    min-height: 25px;
     font-size: 1.2em;
     font-weight: bold;
     color: #dc3545;
 }
 
-footer {
-    margin-top: 40px;
-    padding: 10px;
-    background-color: #eee;
-    font-size: 0.9em;
+#reset-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
 }
