@@ -1,101 +1,129 @@
-// Ganti dengan URL DEPLOY Google Apps Script Anda (WAJIB DEPLOY SEBAGAI WEB APP!)
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw96Im4uEHCvtCsJbOnMi6A54bOe6GsfGJ-qRdphhOn3PQxvJ-CdpOVgOylvCVJmOyJ/exec'; 
-let bankSoal = [];
-let jawabanSiswa = [];
-let nisSiswa = '';
-let namaSiswa = '';
-let kelasSiswa = '';
-let skor = 0;
+// Data Soal Farmasi (Generik vs Dagang)
+const pharmaData = [
+    { generik: "Paracetamol", dagang: "Feverin" },
+    { generik: "Amoxicillin", dagang: "Moxilex" },
+    { generik: "Captopril", dagang: "Tensicap" },
+    { generik: "Ibuprofen", dagang: "Proris" },
+    // Anda bisa menambahkan lebih banyak data di sini
+];
 
-// --- Fungsi Utama ---
+const gameArea = document.getElementById('game-area');
+const scoreBoard = document.getElementById('score-board');
+const resetButton = document.getElementById('reset-button');
+const messageElement = document.getElementById('message');
 
-// 1. Memulai Game/Sistem Soal
-async function fetchSoal() {
-    try {
-        const response = await fetch(APPS_SCRIPT_URL + '?action=getSoal', {
-            method: 'GET', // Menggunakan GET untuk mengambil data
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            bankSoal = result.data;
-            tampilkanHalamanSoal(); // Fungsi untuk menampilkan soal pertama
-        } else {
-            alert('Gagal mengambil soal: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Error fetching soal:', error);
-        alert('Terjadi kesalahan koneksi.');
+let cards = [];
+let cardsFlipped = [];
+let matchesFound = 0;
+let score = 0;
+
+// Fungsi untuk mengacak array (Fisher-Yates Shuffle)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
     }
 }
 
-// 2. Mengirim Hasil ke Backend
-async function kirimHasil(skorAkhir) {
-    const dataKirim = {
-        action: 'saveHasil',
-        data: JSON.stringify({
-            nis: nisSiswa,
-            nama: namaSiswa,
-            kelas: kelasSiswa,
-            skor: skorAkhir,
-            totalSoal: bankSoal.length,
-            jawabanSiswa: jawabanSiswa
-        })
-    };
+// Fungsi untuk Inisialisasi Game
+function initGame() {
+    // Gabungkan Generik dan Dagang menjadi satu array
+    let allItems = [];
+    pharmaData.forEach(item => {
+        allItems.push({ name: item.generik, type: 'generik', match: item.dagang });
+        allItems.push({ name: item.dagang, type: 'dagang', match: item.generik });
+    });
 
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(dataKirim).toString(),
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            alert(`Pengerjaan selesai! Skor Anda: ${skorAkhir}. Hasil berhasil dicatat.`);
-            // Arahkan ke halaman selesai atau menu utama
-        } else {
-            alert('Gagal mencatat hasil: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Error saving hasil:', error);
-        alert('Terjadi kesalahan saat menyimpan hasil.');
-    }
+    shuffleArray(allItems);
+    cards = allItems;
+    
+    // Reset kondisi
+    gameArea.innerHTML = '';
+    cardsFlipped = [];
+    matchesFound = 0;
+    score = 0;
+    scoreBoard.textContent = `Skor: ${score}`;
+    messageElement.textContent = '';
+    resetButton.style.display = 'none';
+
+    // Render Kartu ke DOM
+    cards.forEach((cardData, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.textContent = cardData.name;
+        cardElement.dataset.index = index; // Menyimpan index di array
+        cardElement.dataset.type = cardData.type; // Menyimpan tipe (generik/dagang)
+        cardElement.dataset.match = cardData.match; // Menyimpan pasangan yang benar
+
+        cardElement.addEventListener('click', handleCardClick);
+        gameArea.appendChild(cardElement);
+    });
 }
 
-// --- Logika Game (Contoh) ---
-function prosesJawaban(soalId, pilihan) {
-    // Di sini seharusnya ada logika untuk membandingkan jawaban siswa
-    // dengan kunci jawaban (yang SCRIPT JS tidak miliki)
-    // Untuk game yang benar-benar aman, penghitungan skor harusnya di Apps Script (Backend)
+// Fungsi ketika Kartu di-klik
+function handleCardClick(event) {
+    const clickedCard = event.target;
 
-    // Untuk contoh sederhana: kita hanya mencatat jawaban
-    jawabanSiswa.push({ soalId: soalId, jawaban: pilihan });
-
-    // Pindah ke soal berikutnya atau panggil kirimHasil() jika sudah selesai
-}
-
-// --- Fungsi Admin (Contoh) ---
-async function lihatDataAdmin(password) {
-    if (password !== 'yannashusada2025') { // Ganti dengan password yang lebih kuat
-        alert('Password Admin salah!');
+    // Abaikan jika kartu sudah match atau sudah dipilih
+    if (clickedCard.classList.contains('matched') || clickedCard.classList.contains('selected') || cardsFlipped.length >= 2) {
         return;
     }
 
-    try {
-        const response = await fetch(APPS_SCRIPT_URL + '?action=getHasilAdmin', { method: 'GET' });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            // Logika untuk menampilkan data hasil pengerjaan (result.data) ke tabel di halaman admin
-            console.log('Data Hasil Pengerjaan:', result.data);
-            alert('Data Admin berhasil diambil. Lihat konsol untuk data mentah.');
-        } else {
-            alert('Gagal mengambil data admin: ' + result.message);
-        }
-    } catch (error) {
-        alert('Terjadi kesalahan koneksi.');
+    clickedCard.classList.add('selected');
+    cardsFlipped.push(clickedCard);
+
+    if (cardsFlipped.length === 2) {
+        // Cek kecocokan
+        checkMatch();
     }
 }
+
+// Fungsi Cek Kecocokan Kartu
+function checkMatch() {
+    const [card1, card2] = cardsFlipped;
+
+    // Syarat match: Nama kartu 1 cocok dengan match kartu 2, DAN sebaliknya
+    const isMatch = (
+        card1.textContent === card2.dataset.match &&
+        card2.textContent === card1.dataset.match
+    );
+
+    if (isMatch) {
+        // Match Benar
+        messageElement.textContent = '✅ Cocok! Pasangan Ditemukan.';
+        score += 10;
+        scoreBoard.textContent = `Skor: ${score}`;
+        
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        card1.classList.remove('selected');
+        card2.classList.remove('selected');
+        
+        matchesFound++;
+
+        if (matchesFound === pharmaData.length) {
+            // Game Selesai
+            messageElement.textContent = `🎉 Selamat! Anda menyelesaikan tantangan dengan skor ${score}.`;
+            resetButton.style.display = 'block';
+        }
+    } else {
+        // Match Salah
+        messageElement.textContent = '❌ Tidak Cocok. Coba lagi!';
+        
+        // Kembalikan kartu setelah 1 detik
+        setTimeout(() => {
+            card1.classList.remove('selected');
+            card2.classList.remove('selected');
+            messageElement.textContent = '';
+        }, 1000);
+    }
+
+    // Reset kartu yang dipilih
+    cardsFlipped = [];
+}
+
+// Event Listener untuk tombol reset
+resetButton.addEventListener('click', initGame);
+
+// Mulai Game saat halaman dimuat
+initGame();
